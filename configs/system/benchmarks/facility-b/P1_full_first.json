@@ -1,0 +1,98 @@
+{
+  "facilities": [
+    {
+      "facility_id": "facility-B",
+      "initial_rho_S": 20012,
+      "public_endpoint": {
+        "endpoint_id": "endpoint-B",
+        "substrate_node": "s3"
+      },
+      "randomness_by_request": {
+        "2001": {
+          "rho_M": 200104,
+          "rho_S_next": 200105
+        }
+      },
+      "solver": {
+        "max_seconds": 5,
+        "objective": "min_hops"
+      },
+      "substrate": {
+        "edges": [
+          {
+            "bandwidth": 100,
+            "delay": 1,
+            "u": "s0",
+            "v": "s1"
+          },
+          {
+            "bandwidth": 100,
+            "delay": 1,
+            "u": "s0",
+            "v": "s2"
+          },
+          {
+            "bandwidth": 100,
+            "delay": 1,
+            "u": "s0",
+            "v": "s3"
+          },
+          {
+            "bandwidth": 100,
+            "delay": 1,
+            "u": "s1",
+            "v": "s2"
+          },
+          {
+            "bandwidth": 100,
+            "delay": 1,
+            "u": "s1",
+            "v": "s3"
+          },
+          {
+            "bandwidth": 100,
+            "delay": 1,
+            "u": "s2",
+            "v": "s3"
+          }
+        ],
+        "nodes": [
+          {
+            "arch": "ARM",
+            "cpu": 0,
+            "id": "s0",
+            "memory_gib": 0,
+            "x": 100,
+            "y": 0
+          },
+          {
+            "arch": "ARM",
+            "cpu": 0,
+            "id": "s1",
+            "memory_gib": 0,
+            "x": 101,
+            "y": 1
+          },
+          {
+            "arch": "ARM",
+            "cpu": 0,
+            "id": "s2",
+            "memory_gib": 0,
+            "x": 102,
+            "y": 2
+          },
+          {
+            "arch": 0,
+            "cpu": 0,
+            "id": "s3",
+            "memory_gib": 0,
+            "public_endpoint": true,
+            "x": 103,
+            "y": 3
+          }
+        ]
+      }
+    }
+  ],
+  "public_connectivity": []
+}

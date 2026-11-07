@@ -1,0 +1,9 @@
+networkx>=3.3
+ortools>=9.15
+matplotlib>=3.9,<4
+fastapi>=0.115.6,<0.116
+httpx>=0.28,<0.29
+anyio>=4.7,<4.9
+pydantic>=2.10,<3
+uvicorn>=0.34,<0.35
+cryptography>=44,<46

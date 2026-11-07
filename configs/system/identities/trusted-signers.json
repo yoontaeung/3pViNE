@@ -1,0 +1,16 @@
+{
+  "signers": {
+    "facility-A": {
+      "role": "facility",
+      "public_key_file": "facility-a-demo-public.pem"
+    },
+    "facility-B": {
+      "role": "facility",
+      "public_key_file": "facility-b-demo-public.pem"
+    },
+    "portal": {
+      "role": "portal",
+      "public_key_file": "portal-demo-public.pem"
+    }
+  }
+}

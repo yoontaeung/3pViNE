@@ -1,0 +1,151 @@
+name: zk-vne-system
+
+services:
+  transparency-log:
+    image: zk-vne-system-transparency-log:${ZK_VNE_SYSTEM_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.system
+      target: transparency-log
+    environment:
+      ZK_VNE_LOG_DATA_DIR: /data
+      ZK_VNE_TRUST_CONFIG: /app/config/identities/trusted-signers.json
+    ports:
+      - "127.0.0.1:${ZK_VNE_LOG_PORT:-18080}:8000"
+    volumes:
+      - transparency-log-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  facility-a:
+    image: zk-vne-system-facility-a:${ZK_VNE_SYSTEM_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.system
+      target: facility-a
+      args: &circuit-build-args
+        ZK_VNE_VN_BOUND: ${ZK_VNE_VN_BOUND:-3}
+        ZK_VNE_REAL_SN_COUNT: ${ZK_VNE_REAL_SN_COUNT:-4}
+        ZK_VNE_SN_BOUND: ${ZK_VNE_SN_BOUND:-6}
+        ZK_VNE_HOP_BOUND: ${ZK_VNE_HOP_BOUND:-3}
+        ZK_VNE_PTAU_POWER: ${ZK_VNE_PTAU_POWER:-18}
+        ZK_VNE_BENCHMARK_CONFIG_SET: ${ZK_VNE_BENCHMARK_CONFIG_SET:-benchmarks}
+    environment:
+      ZK_VNE_AUTO_REGISTER: "1"
+      ZK_VNE_FACILITY_CONFIG: /app/config/facility.json
+      ZK_VNE_FACILITY_DATA_DIR: /data
+      ZK_VNE_LOG_URL: http://transparency-log:8000
+      ZK_VNE_PRIVATE_KEY: /app/config/identities/facility-private.pem
+      ZK_VNE_PROOF_MODE: ${ZK_VNE_PROOF_MODE:-groth16}
+      ZK_VNE_SIGNER_ID: facility-A
+      ZK_VNE_TRUST_CONFIG: /app/config/identities/trusted-signers.json
+      ZK_VNE_VN_BOUND: ${ZK_VNE_VN_BOUND:-3}
+      ZK_VNE_REAL_SN_COUNT: ${ZK_VNE_REAL_SN_COUNT:-4}
+      ZK_VNE_SN_BOUND: ${ZK_VNE_SN_BOUND:-6}
+      ZK_VNE_HOP_BOUND: ${ZK_VNE_HOP_BOUND:-3}
+    expose:
+      - "8000"
+    volumes:
+      - facility-a-data:/data
+    depends_on:
+      transparency-log:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  facility-b:
+    image: zk-vne-system-facility-b:${ZK_VNE_SYSTEM_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.system
+      target: facility-b
+      args: *circuit-build-args
+    environment:
+      ZK_VNE_AUTO_REGISTER: "1"
+      ZK_VNE_FACILITY_CONFIG: /app/config/facility.json
+      ZK_VNE_FACILITY_DATA_DIR: /data
+      ZK_VNE_LOG_URL: http://transparency-log:8000
+      ZK_VNE_PRIVATE_KEY: /app/config/identities/facility-private.pem
+      ZK_VNE_PROOF_MODE: ${ZK_VNE_PROOF_MODE:-groth16}
+      ZK_VNE_SIGNER_ID: facility-B
+      ZK_VNE_TRUST_CONFIG: /app/config/identities/trusted-signers.json
+      ZK_VNE_VN_BOUND: ${ZK_VNE_VN_BOUND:-3}
+      ZK_VNE_REAL_SN_COUNT: ${ZK_VNE_REAL_SN_COUNT:-4}
+      ZK_VNE_SN_BOUND: ${ZK_VNE_SN_BOUND:-6}
+      ZK_VNE_HOP_BOUND: ${ZK_VNE_HOP_BOUND:-3}
+    expose:
+      - "8000"
+    volumes:
+      - facility-b-data:/data
+    depends_on:
+      transparency-log:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  portal:
+    image: zk-vne-system-portal:${ZK_VNE_SYSTEM_IMAGE_TAG:-local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.system
+      target: portal
+      args: *circuit-build-args
+    environment:
+      ZK_VNE_LOG_URL: http://transparency-log:8000
+      ZK_VNE_PORTAL_CONFIG: /app/config/portal.json
+      ZK_VNE_PORTAL_DATA_DIR: /data
+      ZK_VNE_PRIVATE_KEY: /app/config/identities/portal-private.pem
+      ZK_VNE_SIGNER_ID: portal
+      ZK_VNE_TRUST_CONFIG: /app/config/identities/trusted-signers.json
+      ZK_VNE_VERIFICATION_KEY: /app/build/zk/resource_feasibility_verification_key.json
+      ZK_VNE_VN_BOUND: ${ZK_VNE_VN_BOUND:-3}
+      ZK_VNE_REAL_SN_COUNT: ${ZK_VNE_REAL_SN_COUNT:-4}
+      ZK_VNE_SN_BOUND: ${ZK_VNE_SN_BOUND:-6}
+      ZK_VNE_HOP_BOUND: ${ZK_VNE_HOP_BOUND:-3}
+    ports:
+      - "127.0.0.1:${ZK_VNE_PORTAL_PORT:-18000}:8000"
+    volumes:
+      - portal-data:/data
+    depends_on:
+      transparency-log:
+        condition: service_healthy
+      facility-a:
+        condition: service_healthy
+      facility-b:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  transparency-log-data:
+  facility-a-data:
+  facility-b-data:
+  portal-data:

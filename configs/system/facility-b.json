@@ -1,0 +1,65 @@
+{
+  "facilities": [
+    {
+      "facility_id": "facility-B",
+      "initial_rho_S": 7201,
+      "public_endpoint": {
+        "endpoint_id": "B-public-0",
+        "substrate_node": "s3"
+      },
+      "solver": {
+        "objective": "min_hops",
+        "max_seconds": 5
+      },
+      "randomness_by_request": {
+        "101": {
+          "rho_M": 7202,
+          "rho_S_next": 7203
+        }
+      },
+      "substrate": {
+        "nodes": [
+          {
+            "id": "s0",
+            "cpu": 50,
+            "arch": "x86"
+          },
+          {
+            "id": "s1",
+            "cpu": 20,
+            "arch": "x86"
+          },
+          {
+            "id": "s2",
+            "cpu": 20,
+            "arch": "x86"
+          },
+          {
+            "id": "s3",
+            "cpu": 0,
+            "arch": 0,
+            "public_endpoint": true
+          }
+        ],
+        "edges": [
+          {
+            "u": "s0",
+            "v": "s3",
+            "bandwidth": 20
+          },
+          {
+            "u": "s1",
+            "v": "s3",
+            "bandwidth": 20
+          },
+          {
+            "u": "s2",
+            "v": "s3",
+            "bandwidth": 20
+          }
+        ]
+      }
+    }
+  ],
+  "public_connectivity": []
+}

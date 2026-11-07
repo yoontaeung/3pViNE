@@ -1,0 +1,183 @@
+FROM rust:1-bookworm AS circom-builder
+
+ARG CIRCOM_VERSION=v2.2.3
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch ${CIRCOM_VERSION} https://github.com/iden3/circom.git /tmp/circom
+RUN cd /tmp/circom && cargo build --release
+
+
+FROM node:20-bookworm AS facility-runtime
+
+ARG ZK_VNE_VN_BOUND=3
+ARG ZK_VNE_REAL_SN_COUNT=4
+ARG ZK_VNE_SN_BOUND=6
+ARG ZK_VNE_HOP_BOUND=3
+ARG ZK_VNE_PTAU_POWER=18
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        python3 \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=circom-builder /tmp/circom/target/release/circom /usr/local/bin/circom
+
+COPY package.json /opt/zk-vne-js/package.json
+RUN cd /opt/zk-vne-js \
+    && npm install \
+    && npm install -g snarkjs@0.7.5
+
+COPY system/requirements-api.txt /tmp/requirements-api.txt
+COPY system/requirements-facility.txt /tmp/requirements-facility.txt
+RUN sed -i 's|requirements-api.txt|/tmp/requirements-api.txt|' /tmp/requirements-facility.txt \
+    && python3 -m venv /opt/zk-vne-venv \
+    && /opt/zk-vne-venv/bin/pip install --upgrade pip \
+    && /opt/zk-vne-venv/bin/pip install -r /tmp/requirements-facility.txt
+
+ENV NODE_PATH=/opt/zk-vne-js/node_modules
+ENV PATH=/opt/zk-vne-venv/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+ENV ZK_VNE_VN_BOUND=${ZK_VNE_VN_BOUND}
+ENV ZK_VNE_REAL_SN_COUNT=${ZK_VNE_REAL_SN_COUNT}
+ENV ZK_VNE_SN_BOUND=${ZK_VNE_SN_BOUND}
+ENV ZK_VNE_HOP_BOUND=${ZK_VNE_HOP_BOUND}
+
+WORKDIR /app
+
+COPY circuits/ /app/circuits/
+COPY scripts/build_circuit.sh scripts/setup_groth16.sh scripts/poseidon_chain.js scripts/render_circuit.py /app/scripts/
+RUN python scripts/render_circuit.py \
+        circuits/resource_feasibility.circom \
+        /tmp/resource_feasibility.circom \
+        --vn "${ZK_VNE_VN_BOUND}" \
+        --sn "${ZK_VNE_SN_BOUND}" \
+        --hops "${ZK_VNE_HOP_BOUND}" \
+    && CIRCUIT_SOURCE=/tmp/resource_feasibility.circom bash scripts/build_circuit.sh \
+    && PTAU_POWER="${ZK_VNE_PTAU_POWER}" bash scripts/setup_groth16.sh \
+    && rm -f build/zk/*.ptau build/zk/*_0000.zkey
+
+COPY graph_data.py local_solver.py partial_protocol.py protocol.py protocol_demo.py verifier.py zk_encoding.py /app/
+COPY \
+    system/__init__.py \
+    system/api_models.py \
+    system/auth.py \
+    system/facility_app.py \
+    system/facility_engine.py \
+    system/facility_store.py \
+    system/graph_codec.py \
+    system/http_trace.py \
+    system/log_client.py \
+    system/proof_runtime.py \
+    system/residual_validation.py \
+    /app/system/
+
+EXPOSE 8000
+
+
+FROM facility-runtime AS facility-a
+ARG ZK_VNE_BENCHMARK_CONFIG_SET=benchmarks
+COPY configs/system/facility-a.json /app/config/facility.json
+COPY configs/system/${ZK_VNE_BENCHMARK_CONFIG_SET}/facility-a/ /app/config/benchmarks/
+COPY configs/system/identities/trusted-signers.json configs/system/identities/*-demo-public.pem /app/config/identities/
+COPY configs/system/identities/facility-a-demo-private.pem /app/config/identities/facility-private.pem
+CMD ["uvicorn", "system.facility_app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+FROM facility-runtime AS facility-b
+ARG ZK_VNE_BENCHMARK_CONFIG_SET=benchmarks
+COPY configs/system/facility-b.json /app/config/facility.json
+COPY configs/system/${ZK_VNE_BENCHMARK_CONFIG_SET}/facility-b/ /app/config/benchmarks/
+COPY configs/system/identities/trusted-signers.json configs/system/identities/*-demo-public.pem /app/config/identities/
+COPY configs/system/identities/facility-b-demo-private.pem /app/config/identities/facility-private.pem
+CMD ["uvicorn", "system.facility_app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+FROM node:20-bookworm AS portal
+
+ARG ZK_VNE_VN_BOUND=3
+ARG ZK_VNE_REAL_SN_COUNT=4
+ARG ZK_VNE_SN_BOUND=6
+ARG ZK_VNE_HOP_BOUND=3
+ARG ZK_VNE_BENCHMARK_CONFIG_SET=benchmarks
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        python3 \
+        python3-pip \
+        python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g snarkjs@0.7.5
+
+COPY system/requirements-api.txt /tmp/requirements-api.txt
+COPY system/requirements-portal.txt /tmp/requirements-portal.txt
+RUN sed -i 's|requirements-api.txt|/tmp/requirements-api.txt|' /tmp/requirements-portal.txt \
+    && python3 -m venv /opt/zk-vne-venv \
+    && /opt/zk-vne-venv/bin/pip install --upgrade pip \
+    && /opt/zk-vne-venv/bin/pip install -r /tmp/requirements-portal.txt
+
+ENV PATH=/opt/zk-vne-venv/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+ENV ZK_VNE_VN_BOUND=${ZK_VNE_VN_BOUND}
+ENV ZK_VNE_REAL_SN_COUNT=${ZK_VNE_REAL_SN_COUNT}
+ENV ZK_VNE_SN_BOUND=${ZK_VNE_SN_BOUND}
+ENV ZK_VNE_HOP_BOUND=${ZK_VNE_HOP_BOUND}
+
+WORKDIR /app
+COPY --from=facility-runtime \
+    /app/build/zk/resource_feasibility_verification_key.json \
+    /app/build/zk/resource_feasibility_verification_key.json
+COPY graph_data.py zk_encoding.py /app/
+COPY \
+    system/__init__.py \
+    system/api_models.py \
+    system/auth.py \
+    system/circuit_request.py \
+    system/facility_client.py \
+    system/graph_codec.py \
+    system/http_trace.py \
+    system/log_client.py \
+    system/portal_app.py \
+    system/portal_engine.py \
+    system/portal_verifier.py \
+    system/request_trace.py \
+    system/residual_validation.py \
+    /app/system/
+COPY configs/system/portal.json /app/config/portal.json
+COPY configs/system/${ZK_VNE_BENCHMARK_CONFIG_SET}/portal.json /app/config/benchmarks/portal.json
+COPY configs/system/identities/trusted-signers.json configs/system/identities/*-demo-public.pem /app/config/identities/
+COPY configs/system/identities/portal-demo-private.pem /app/config/identities/portal-private.pem
+
+EXPOSE 8000
+CMD ["uvicorn", "system.portal_app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+FROM python:3.12-slim-bookworm AS transparency-log
+
+COPY system/requirements-api.txt /tmp/requirements-api.txt
+RUN python3 -m venv /opt/zk-vne-venv \
+    && /opt/zk-vne-venv/bin/pip install --upgrade pip \
+    && /opt/zk-vne-venv/bin/pip install -r /tmp/requirements-api.txt
+
+ENV PATH=/opt/zk-vne-venv/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+COPY protocol.py /app/
+COPY \
+    system/__init__.py \
+    system/api_models.py \
+    system/auth.py \
+    system/log_app.py \
+    system/log_store.py \
+    /app/system/
+COPY configs/system/identities/trusted-signers.json configs/system/identities/*-demo-public.pem /app/config/identities/
+
+EXPOSE 8000
+CMD ["uvicorn", "system.log_app:app", "--host", "0.0.0.0", "--port", "8000"]

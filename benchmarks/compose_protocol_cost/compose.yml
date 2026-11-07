@@ -1,0 +1,15 @@
+services:
+  facility-a:
+    environment:
+      ZK_VNE_FACILITY_CONFIG: /app/config/benchmarks/${ZK_VNE_SCENARIO_ID}.json
+      ZK_VNE_HTTP_TRACE_PATH: /data/http_trace.jsonl
+
+  facility-b:
+    environment:
+      ZK_VNE_FACILITY_CONFIG: /app/config/benchmarks/${ZK_VNE_SCENARIO_ID}.json
+      ZK_VNE_HTTP_TRACE_PATH: /data/http_trace.jsonl
+
+  portal:
+    environment:
+      ZK_VNE_HTTP_TRACE_PATH: /data/http_trace.jsonl
+      ZK_VNE_PORTAL_CONFIG: /app/config/benchmarks/portal.json

@@ -1,0 +1,78 @@
+{
+  "requests": [
+    {
+      "request_id": 100,
+      "facility_order": ["facility-A"],
+      "vnr": {
+        "nodes": [
+          {
+            "id": "v0",
+            "cpu": 10,
+            "arch": "ARM"
+          },
+          {
+            "id": "v1",
+            "cpu": 10,
+            "arch": "ARM"
+          }
+        ],
+        "edges": [
+          {
+            "u": "v0",
+            "v": "v1",
+            "bandwidth": 5
+          }
+        ]
+      }
+    },
+    {
+      "request_id": 101,
+      "facility_order": ["facility-A", "facility-B"],
+      "vnr": {
+        "nodes": [
+          {
+            "id": "v0",
+            "cpu": 10,
+            "arch": "ARM"
+          },
+          {
+            "id": "v1",
+            "cpu": 10,
+            "arch": "ARM"
+          },
+          {
+            "id": "v2",
+            "cpu": 30,
+            "arch": "x86"
+          }
+        ],
+        "edges": [
+          {
+            "u": "v0",
+            "v": "v1",
+            "bandwidth": 5
+          },
+          {
+            "u": "v1",
+            "v": "v2",
+            "bandwidth": 10
+          }
+        ]
+      }
+    },
+    {
+      "request_id": 102,
+      "facility_order": ["facility-A", "facility-B"],
+      "vnr": {
+        "nodes": [
+          {
+            "id": "v0",
+            "cpu": 200,
+            "arch": "ARM"
+          }
+        ],
+        "edges": []
+      }
+    }
+  ]
+}

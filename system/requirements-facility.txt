@@ -1,0 +1,4 @@
+-r requirements-api.txt
+httpx>=0.28,<0.29
+networkx>=3.3
+ortools>=9.15

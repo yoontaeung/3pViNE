@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "circuit": {
+    "vn": 5,
+    "real_sn": 10,
+    "sn": 12,
+    "hops": 3,
+    "ptau_power": 19
+  },
+  "workload": {
+    "request": {
+      "arrival_time": 0,
+      "duration": 100,
+      "maximum_distance": 10000,
+      "nodes": [
+        {"id": "v0", "x": 0, "y": 0, "cpu": 6},
+        {"id": "v1", "x": 10, "y": 0, "cpu": 4},
+        {"id": "v2", "x": 20, "y": 0, "cpu": 10},
+        {"id": "v3", "x": 90, "y": 0, "cpu": 8},
+        {"id": "v4", "x": 100, "y": 0, "cpu": 7}
+      ],
+      "edges": [
+        {"u": "v0", "v": "v1", "bandwidth": 5, "delay": 1},
+        {"u": "v1", "v": "v2", "bandwidth": 5, "delay": 1},
+        {"u": "v2", "v": "v3", "bandwidth": 5, "delay": 5},
+        {"u": "v3", "v": "v4", "bandwidth": 5, "delay": 1}
+      ]
+    },
+    "facilities": [
+      {
+        "facility_id": "facility-A",
+        "inp_id": 0,
+        "global_node_base": 0,
+        "coordinate_x": 0,
+        "endpoint_id": "endpoint-A"
+      },
+      {
+        "facility_id": "facility-B",
+        "inp_id": 1,
+        "global_node_base": 100,
+        "coordinate_x": 100,
+        "endpoint_id": "endpoint-B"
+      }
+    ],
+    "substrate_topology": {
+      "type": "full_mesh",
+      "node_count": 10,
+      "bandwidth": 100,
+      "delay": 1
+    },
+    "peering": {
+      "facility_a": "facility-A",
+      "node_a": "s9",
+      "facility_b": "facility-B",
+      "node_b": "s9",
+      "bandwidth": 100,
+      "delay": 5
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "P1_full_first",
+      "description": "Facility A fully embeds the original VNR.",
+      "request_id": 3001,
+      "facility_order": ["facility-A"],
+      "expected_outcome": "accepted",
+      "expected_claims": ["full"],
+      "facility_cpu": {
+        "facility-A": [6, 4, 10, 8, 7, 0, 0, 0, 0, 0],
+        "facility-B": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "scenario_id": "P2_decline_then_full",
+      "description": "Facility A declines and Facility B fully embeds the original VNR.",
+      "request_id": 3002,
+      "facility_order": ["facility-A", "facility-B"],
+      "expected_outcome": "accepted",
+      "expected_claims": ["decline", "full"],
+      "facility_cpu": {
+        "facility-A": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "facility-B": [6, 4, 10, 8, 7, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "scenario_id": "P3_partial_then_full",
+      "description": "Facility A embeds v0-v2 and Facility B completes residual v3-v4.",
+      "request_id": 3003,
+      "facility_order": ["facility-A", "facility-B"],
+      "expected_outcome": "accepted",
+      "expected_claims": ["partial", "full"],
+      "facility_cpu": {
+        "facility-A": [6, 4, 10, 0, 0, 0, 0, 0, 0, 0],
+        "facility-B": [8, 7, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "scenario_id": "P4_partial_then_decline",
+      "description": "Facility A embeds v0-v2 and Facility B declines the residual.",
+      "request_id": 3004,
+      "facility_order": ["facility-A", "facility-B"],
+      "expected_outcome": "declined",
+      "expected_claims": ["partial", "decline"],
+      "facility_cpu": {
+        "facility-A": [6, 4, 10, 0, 0, 0, 0, 0, 0, 0],
+        "facility-B": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "scenario_id": "P5_all_decline",
+      "description": "Both facilities decline the original VNR.",
+      "request_id": 3005,
+      "facility_order": ["facility-A", "facility-B"],
+      "expected_outcome": "declined",
+      "expected_claims": ["decline", "decline"],
+      "facility_cpu": {
+        "facility-A": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "facility-B": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    }
+  ]
+}

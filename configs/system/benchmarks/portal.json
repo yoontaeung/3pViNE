@@ -1,0 +1,13 @@
+{
+  "facilities": {
+    "facility-A": "http://facility-a:8000",
+    "facility-B": "http://facility-b:8000"
+  },
+  "public_links": [
+    {
+      "bandwidth": 100,
+      "endpoint_a": "endpoint-A",
+      "endpoint_b": "endpoint-B"
+    }
+  ]
+}
